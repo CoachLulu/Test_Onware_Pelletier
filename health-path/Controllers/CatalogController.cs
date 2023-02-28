@@ -40,15 +40,17 @@ public class CatalogController : ControllerBase
         var productRecords = await FetchProductRecords(nhpids);
         var ids = productRecords.Keys;
         var purposes = await FetchProductPurposes(ids);
-
+        var routes =  await FetchProductRoutes(ids); //my code here mathieu
         var products = new List<NaturalProduct>();
+
         foreach (var productRecord in productRecords.Values) {
             products.Add(new NaturalProduct(
                 productRecord.LicenceNo,
                 productRecord.ProductName,
                 productRecord.CompanyName,
                 productRecord.Active,
-                purposes.GetValueOrDefault(productRecord.Id, ImmutableList<string>.Empty)
+                purposes.GetValueOrDefault(productRecord.Id, ImmutableList<string>.Empty),
+                routes.GetValueOrDefault(productRecord.Id,ImmutableList<string>.Empty)
             ));
         }
 
@@ -104,6 +106,40 @@ public class CatalogController : ControllerBase
 
         return productPurposes.ToImmutableDictionary(e => e.Key, e => e.Value.ToImmutableList());
     }
+
+
+    //my code here mathieu
+    private async Task<ImmutableDictionary<string, ImmutableList<string>>> FetchProductRoutes(IEnumerable<string> ids)
+    {
+        var productRoutes = new ConcurrentDictionary<string, ConcurrentBag<string>>();
+
+        foreach (var id in ids)
+        {
+            var apiUrl = $"{_lnhpdBaseUrl}/productroute/?id={id}";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseData = JsonObject.Parse(responseContent);
+
+                var value = responseData?[0]?["route_type_desc"]?.ToString();
+                var key = responseData?[0]?["lnhpd_id"]?.ToString();
+
+                ConcurrentBag<string> routes = productRoutes.GetOrAdd(key!, _ => new ConcurrentBag<string>());
+                routes.Add(value!);
+
+            }
+            catch (TaskCanceledException)
+            {
+                throw;
+            }
+        }
+
+        return productRoutes.ToImmutableDictionary(e => e.Key, e => e.Value.ToImmutableList()); 
+    } 
+
 
     private async Task FetchMany<T>(IEnumerable<string> inputUrls, Func<T?, JsonArray?> finder, Action<JsonObject> processor) {
         using (var limiter = new Limiter(10))

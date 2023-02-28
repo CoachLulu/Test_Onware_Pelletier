@@ -14,6 +14,8 @@ export class NewsletterComponent implements OnInit {
 
   email = new FormControl('', [Validators.required, Validators.email]);
 
+  emails:string[] = [];
+
   constructor(private newsletterService: NewsletterService) { }
 
   ngOnInit(): void {
@@ -33,7 +35,8 @@ export class NewsletterComponent implements OnInit {
 
   subscribe() {
     if (this.email.valid) {
-      const email = this.email.value;
+      const email = this.sanitizeEmail(this.email.value!);
+
       if (email) {
         this.newsletterService.subscribe(email)
           .subscribe({
@@ -42,9 +45,30 @@ export class NewsletterComponent implements OnInit {
               if (!success) {
                 this.email.setErrors({[ALREADY_SUBSCRIBED]: true});
               }
+              else
+              {
+                this.emails.push(email);//little tracker to see if duplicates are possible. 
+              }
             }
           });
       }
     }
+  }
+
+  //my code here - Mathieu
+   sanitizeEmail(s: string): string {
+    const parts = s.split('@');
+    
+    if (parts.length !== 2) {
+      // Invalid email format
+      return s;
+    }
+
+    const localpart = parts[0];
+    const domain = parts[1];
+
+    const modifiedLocalpart = localpart.replace(/\./g, "");
+
+    return modifiedLocalpart + "@" + domain;
   }
 }

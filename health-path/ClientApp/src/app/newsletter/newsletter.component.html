@@ -16,4 +16,18 @@
             <button mat-flat-button [disabled]="email.invalid" color="primary" (click)="subscribe()">Subscribe</button>
         </p>
     </mat-card-content>
+
+    <table *ngIf="emails.length > 0" >
+        <thead>
+            <tr>
+            <th>Email</th>
+            </tr>
+        </thead>
+        <tbody *ngFor="let ems of emails; index as i">
+            <tr>
+            <td>{{ems}}</td>
+            </tr>
+        </tbody>
+    </table>
+
 </mat-card>

@@ -23,10 +23,16 @@ public class ScheduleController : ControllerBase
     {
         var dbResults = ReadData();
 
-        var preparedResults = dbResults.Select((t) => {
-            t.Item1.Recurrences.Add(t.Item2);
-            return t.Item1;
-        });
+
+        var preparedResults = dbResults
+        .GroupBy(t => t.Item1.Id)
+        .Select(g => {
+            var item1 = g.FirstOrDefault().Item1;
+            if (item1 != null) {
+                item1.Recurrences = g.Select(t => t.Item2).ToList();
+            }
+            return item1;
+        }).Where(item1 => item1 != null);
 
         return Ok(preparedResults);
     }
